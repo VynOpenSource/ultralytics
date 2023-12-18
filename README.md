@@ -46,7 +46,10 @@ To request an Enterprise License please complete the form at [Ultralytics Licens
 
 ## <div align="center">Documentation</div>
 
-See below for a quickstart installation and usage example, and see the [YOLOv8 Docs](https://docs.ultralytics.com) for full documentation on training, validation, prediction and deployment.
+See below for a quickstart installation and usage example, and see the [YOLOv8 Docs](https://docs.ultralytics.com) for full documentation on 
+training, validation, prediction and deployment for the original version. This forked version contains only a few
+additions, which are detailed in the section [Forked code additions](#code_additions)
+
 
 <details open>
 <summary>Install</summary>
@@ -97,6 +100,38 @@ path = model.export(format="onnx")  # export the model to ONNX format
 See YOLOv8 [Python Docs](https://docs.ultralytics.com/usage/python) for more examples.
 
 </details>
+
+<a name="code_additions"/>
+
+#### Forked code additions
+This section is the only one unique for this forked code, and it illustrates the additions to the main code.
+
+```python
+from ultralytics.ultralytics import YOLO
+
+model = YOLO(cfg)
+#if not self.standard_params.resume:
+#    self.model.args = hyper_params
+
+#self.model.overrides = args.to_dict()
+
+# The code seems to reset all the parameters of the models when training for some reason
+# So, we need to pass them to override them
+input_data = dict(getattr(self.model, 'args', self.model.model.args))
+
+input_data['data'] = self.standard_params.data_yaml
+input_data['resume'] = self.standard_params.resume
+input_data['cfg']['delete_cache'] = self.remove_cache
+if hasattr(self, '_custom_augmentation'):
+    input_data['methods'] = {'custom_augmentation': self.custom_augmentation}
+
+self.model.train(**input_data)
+
+def custom_augmentation(self, label):
+bbox = label['instances'].bboxes
+image = label['img']
+```
+
 
 ## <div align="center">Models</div>
 
@@ -263,3 +298,4 @@ For Ultralytics bug reports and feature requests please visit [GitHub Issues](ht
   <img src="https://github.com/ultralytics/assets/raw/main/social/logo-transparent.png" width="3%" alt="space">
   <a href="https://ultralytics.com/discord"><img src="https://github.com/ultralytics/assets/raw/main/social/logo-social-discord.png" width="3%" alt="Ultralytics Discord"></a>
 </div>
+
