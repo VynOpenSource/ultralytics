@@ -20,8 +20,6 @@ from .utils import HELP_URL, IMG_FORMATS
 
 # Isaac's Addition
 from ..utils import initialise_dict, remove_ambiguous_classes, get_indices
-from ai_model_utils.object_detector.pre_processing import remove_ambiguous_classes
-from ai_data_processing.generators.index_selector import get_indices
 
 
 class BaseDataset(Dataset):

@@ -3,6 +3,7 @@
 import contextlib
 from copy import deepcopy
 from pathlib import Path
+from typing import Callable
 
 import torch
 import torch.nn as nn
@@ -18,13 +19,29 @@ from ultralytics.yolo.utils.plotting import feature_visualization
 from ultralytics.yolo.utils.torch_utils import (fuse_conv_and_bn, fuse_deconv_and_bn, initialize_weights,
                                                 intersect_dicts, make_divisible, model_info, scale_img, time_sync)
 
-# Isaac's Addition
-from ai_model_utils.attentions.pytorch.standard_attentions import SE
 
 try:
     import thop
 except ImportError:
     thop = None
+
+
+class SE(nn.Module):
+    """
+    Squeeze and Excitation attention. This is a channel-wise attention model to recalibrate channels in a simple, but
+    effective way.
+    """
+
+    def __init__(self, input_channels, scale_activation: Callable[..., torch.nn.Module] = torch.nn.Sigmoid,):
+        super().__init__()
+        self.pool = nn.AdaptiveAvgPool2d(1)
+        self.dense = nn.Conv2d(input_channels, input_channels, 1)
+        self.scale_activation = scale_activation()
+
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        w = self.pool(inputs)
+        w = self.dense(w)
+        return self.scale_activation(w) * inputs
 
 
 class BaseModel(nn.Module):
