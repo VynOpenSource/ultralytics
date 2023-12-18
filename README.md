@@ -109,7 +109,7 @@ This section is the only one unique for this forked code, and it illustrates the
 ```python
 from ultralytics.ultralytics import YOLO
 
-model = YOLO(cfg)
+model = YOLO("yolov8n.yaml")
 #if not self.standard_params.resume:
 #    self.model.args = hyper_params
 
@@ -117,21 +117,91 @@ model = YOLO(cfg)
 
 # The code seems to reset all the parameters of the models when training for some reason
 # So, we need to pass them to override them
-input_data = dict(getattr(self.model, 'args', self.model.model.args))
+input_data = dict(getattr(model, 'args', model.model.args))
 
-input_data['data'] = self.standard_params.data_yaml
-input_data['resume'] = self.standard_params.resume
-input_data['cfg']['delete_cache'] = self.remove_cache
-if hasattr(self, '_custom_augmentation'):
-    input_data['methods'] = {'custom_augmentation': self.custom_augmentation}
+input_data['data'] = dataset
 
-self.model.train(**input_data)
+input_data['cfg']['shuffle_class'] = True
+input_data['cfg']['class_rate'] = generator_class_rate
+input_data['cfg']['ambiguous_classes'] = ambiguous_classes
+input_data['cfg']['mapping_classes'] = mapping_classes
+input_data['cfg']['delete_cache'] = True  # This will force the cache of the data to be removed. It is useful if the dataset has been updated, since ultralytic cahced the dataset
 
-def custom_augmentation(self, label):
-bbox = label['instances'].bboxes
-image = label['img']
+input_data['methods'] = {'custom_augmentation': custom_augmentation}
+
+model.train(**input_data)
 ```
 
+The custom augmentation is a function that receives the label objec of ultralytics (output of the model 
+when predicting). For completeness, this object contains the image and the boxes, masks, etc... The bounding boxes
+are in teh format center, width, height. A illustration of an augmentation function is:
+
+```python
+def custom_augmentation(label):
+    bbox = label['instances'].bboxes
+    image = label['img']
+    .
+    .
+    .
+```
+
+The purpose of `ambiguous_classes` and `mapping_classes` is the following: Imagine that we have a small dataset of 
+people. Each individual person is labelled, but in the dataset there also are hands, heads and other parts of the 
+human body, but very few of them. In order to get an initial model, it would be convenient not to use these objects, 
+but we do want to keep using images as negative sampels, just not the objects. 
+
+To solve this problem, this code allows the user to select a set of classes that are going to be removed, meaning the
+objects in the image will be changed by random noise.
+
+The bounding boxes in training and validation contains the classes that are being represented.
+These classes are going to be integers from 0 to `nc_complete`, in contrast to `nc` as in the original code.
+The `nc` represents the num ber of classes that are going to be detected whereas `nc_complete` is the total number of
+classes in the dataset.
+
+In addition, there will be a variable containing the classes that must be removed from the images, named
+`excluded_classes` and mapper that will change the class index of the classes to be detected so that the index is
+continous.
+
+An example of these variables is:
+```python
+ambiguous_classes = [2, 3, 8, 9, 11]
+mapping_classes = {0: 0, 1: 1, 4: 2, 5: 3, 6: 4, 7: 5, 10: 6, 12: 7}
+```
+
+the `nc_complete` must be passed to the yaml file containing the dataset. An example of this yaml file is:
+
+```commandline
+
+names:
+- barrier
+- barrier_angle
+- barrier_cadent
+- barrier_cadent_angle
+- barrier_connector
+- barrier_pad
+- manhole
+- water_barrier
+nc: 8
+nc_complete: 13
+train: PATH/TO/training.txt
+val: PATH/TO/validation.txt
+```
+
+Lastly, the `shuffle_class` and `generator_class_rate` are used to biase the dataset when needed. 
+It allows to pass the relative rate of each of classes. 
+For instance, if we have 3 classes: `barrier`, `manhole` and `water_barrier` and we want the class `manhole` to
+be used twice as much as the other two since this class seems to be harder for the model to train it properly. Then,
+
+```python
+generator_class_rate = {'barrier': 1, 'manhole': 2, 'water_barrier': 1}
+```
+
+Notice the `shuffle_class` is used to shuffle classes or to use all the dataset as is. So, if `shuffle_class` is False
+(default behaviour and the only one in the original code) then all the dataset is used, if there are 100 images (80 of 
+class `barrier` and 20 of the rests) the 100 images will be used per epoch. When `shuffle_class` is True, the training
+will select each class with equal probability regardless of the number of images of each class. 
+If `generator_class_rate` is provided then the classes will be selected following that rate instead of with
+equal probability.
 
 ## <div align="center">Models</div>
 
