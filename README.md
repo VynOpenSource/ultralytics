@@ -175,11 +175,11 @@ the `nc_complete` must be passed to the yaml file containing the dataset. An exa
 names:
 - barrier
 - barrier_angle
-- barrier_cadent
-- barrier_cadent_angle
 - barrier_connector
 - barrier_pad
 - manhole
+- plastic_barrier
+- plastic_barrier_angle
 - water_barrier
 nc: 8
 nc_complete: 13
