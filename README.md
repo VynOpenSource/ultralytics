@@ -132,9 +132,9 @@ input_data['methods'] = {'custom_augmentation': custom_augmentation}
 model.train(**input_data)
 ```
 
-The custom augmentation is a function that receives the label objec of ultralytics (output of the model 
+The custom augmentation is a function that receives the label object of ultralytics (output of the model 
 when predicting). For completeness, this object contains the image and the boxes, masks, etc... The bounding boxes
-are in teh format center, width, height. A illustration of an augmentation function is:
+are in the format center, width, height. A illustration of an augmentation function is:
 
 ```python
 def custom_augmentation(label):
@@ -143,6 +143,8 @@ def custom_augmentation(label):
     .
     .
     .
+    # Output of the model is the same as the input
+    return modified_label
 ```
 
 The purpose of `ambiguous_classes` and `mapping_classes` is the following: Imagine that we have a small dataset of 
@@ -187,7 +189,7 @@ train: PATH/TO/training.txt
 val: PATH/TO/validation.txt
 ```
 
-Lastly, the `shuffle_class` and `generator_class_rate` are used to biase the dataset when needed. 
+Lastly, the `shuffle_class` and `generator_class_rate` are used to bias the dataset when needed. 
 It allows to pass the relative rate of each of classes. 
 For instance, if we have 3 classes: `barrier`, `manhole` and `water_barrier` and we want the class `manhole` to
 be used twice as much as the other two since this class seems to be harder for the model to train it properly. Then,
