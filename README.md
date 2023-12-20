@@ -104,8 +104,14 @@ See YOLOv8 [Python Docs](https://docs.ultralytics.com/usage/python) for more exa
 <a name="code_additions"/>
 
 #### Forked code additions
-This section is the only one unique for this forked code, and it illustrates the additions to the main code.
+This sections illustrates the changes added to main code in this fork.
 
+There are three main additions:
+1. Custom augmentations: This permits the addition of new augmentations not present in the ultralytics pipeline.
+2. Excluding bounding boxes: This enables the training process to remove specific classes from the images. 
+3. Biasing data using labels: This allows the user to select what classes are going to appear more freqently in the training.
+
+These three additions can be used in the code as follows:
 ```python
 from ultralytics.ultralytics import YOLO
 
@@ -134,8 +140,10 @@ model.train(**input_data)
 ```
 
 The custom augmentation is a function that receives the label object of ultralytics (output of the model 
-when predicting). This object contains the image and the boxes, masks, etc... The bounding boxes, in particular,
-are in the format center, width, height. An illustration of an augmentation function is presented below:
+when predicting) and returns the same type of object. This object contains the image and the boxes, masks, etc... 
+The bounding boxes are in the format center, width, height. 
+
+An illustration of an augmentation function is presented below:
 
 ```python
 def custom_augmentation(label):
@@ -148,13 +156,14 @@ def custom_augmentation(label):
     return modified_label
 ```
 
-The purpose of `ambiguous_classes` and `mapping_classes` is the following: Imagine that we have a small dataset of 
-people. Each individual person is labelled, but in the dataset there are also hands, heads and other parts of the 
-human body, but very few of them. In order to get an initial model, it would be convenient not to use these objects, 
-but we do want to keep using those images because complete people may be in there as well. 
+In order to perform the removal of bounding boxes from images the parameters `ambiguous_classes` and `mapping_classes` 
+are used. The purpose of this addition is the following: Imagine that we have a small dataset of people. 
+In this dataset, each individual person is labelled, but in the dataset there are also hands, heads and other parts of 
+the human body, but very few of them. In order to get an initial model, it would be convenient not to use these objects, 
+but we do want to keep using those images because complete complete persons may be in those images as well. 
 
 To solve this issue, this code allows the user to select a set of classes that are going to be removed, meaning the
-objects in the image will be changed by random noise.
+objects in the images will be replaced with random noise.
 
 The bounding boxes in training and validation contain the classes that are being represented.
 These classes are going to be integers from 0 to `nc_complete`, in contrast to `nc` as in the original code.
