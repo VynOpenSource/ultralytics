@@ -121,6 +121,7 @@ input_data = dict(getattr(model, 'args', model.model.args))
 
 input_data['data'] = dataset
 
+# New options for this forked code
 input_data['cfg']['shuffle_class'] = True
 input_data['cfg']['class_rate'] = generator_class_rate
 input_data['cfg']['ambiguous_classes'] = ambiguous_classes
@@ -133,8 +134,8 @@ model.train(**input_data)
 ```
 
 The custom augmentation is a function that receives the label object of ultralytics (output of the model 
-when predicting). For completeness, this object contains the image and the boxes, masks, etc... The bounding boxes
-are in the format center, width, height. A illustration of an augmentation function is:
+when predicting). This object contains the image and the boxes, masks, etc... The bounding boxes, in particular,
+are in the format center, width, height. An illustration of an augmentation function is presented below:
 
 ```python
 def custom_augmentation(label):
@@ -143,34 +144,34 @@ def custom_augmentation(label):
     .
     .
     .
-    # Output of the model is the same as the input
+    # Output of the model is the same as the input, the image and bboxes, mask etc... must be modified and stored
     return modified_label
 ```
 
 The purpose of `ambiguous_classes` and `mapping_classes` is the following: Imagine that we have a small dataset of 
-people. Each individual person is labelled, but in the dataset there also are hands, heads and other parts of the 
+people. Each individual person is labelled, but in the dataset there are also hands, heads and other parts of the 
 human body, but very few of them. In order to get an initial model, it would be convenient not to use these objects, 
-but we do want to keep using images as negative sampels, just not the objects. 
+but we do want to keep using those images because complete people may be in there as well. 
 
-To solve this problem, this code allows the user to select a set of classes that are going to be removed, meaning the
+To solve this issue, this code allows the user to select a set of classes that are going to be removed, meaning the
 objects in the image will be changed by random noise.
 
-The bounding boxes in training and validation contains the classes that are being represented.
+The bounding boxes in training and validation contain the classes that are being represented.
 These classes are going to be integers from 0 to `nc_complete`, in contrast to `nc` as in the original code.
-The `nc` represents the num ber of classes that are going to be detected whereas `nc_complete` is the total number of
+The `nc` represents the number of classes that are going to be detected whereas `nc_complete` is the total number of
 classes in the dataset.
 
 In addition, there will be a variable containing the classes that must be removed from the images, named
-`excluded_classes` and mapper that will change the class index of the classes to be detected so that the index is
-continous.
+`excluded_classes` and a mapper that will change the class index of the classes to be detected so that the index is
+continuous.
 
-An example of these variables is:
+An example of these variables is shown below:
 ```python
 ambiguous_classes = [2, 3, 8, 9, 11]
 mapping_classes = {0: 0, 1: 1, 4: 2, 5: 3, 6: 4, 7: 5, 10: 6, 12: 7}
 ```
 
-the `nc_complete` must be passed to the yaml file containing the dataset. An example of this yaml file is:
+The `nc_complete` must be passed to the yaml file containing the dataset. An example of this yaml file is:
 
 ```commandline
 
@@ -190,7 +191,7 @@ val: PATH/TO/validation.txt
 ```
 
 Lastly, the `shuffle_class` and `generator_class_rate` are used to bias the dataset when needed. 
-It allows to pass the relative rate of each of classes. 
+It allows to pass the relative rate of each class. 
 For instance, if we have 3 classes: `barrier`, `manhole` and `water_barrier` and we want the class `manhole` to
 be used twice as much as the other two since this class seems to be harder for the model to train it properly. Then,
 
@@ -198,10 +199,12 @@ be used twice as much as the other two since this class seems to be harder for t
 generator_class_rate = {'barrier': 1, 'manhole': 2, 'water_barrier': 1}
 ```
 
-Notice the `shuffle_class` is used to shuffle classes or to use all the dataset as is. So, if `shuffle_class` is False
-(default behaviour and the only one in the original code) then all the dataset is used, if there are 100 images (80 of 
-class `barrier` and 20 of the rests) the 100 images will be used per epoch. When `shuffle_class` is True, the training
-will select each class with equal probability regardless of the number of images of each class. 
+Notice the `shuffle_class` is used to radomly select data from a class or to use all the dataset as is. 
+So, if `shuffle_class` is False (default behaviour and the only one in the original code) then all the 
+dataset will be used, for instance, if there are 100 images (80 of class `barrier` and 20 of the rests) 
+the 100 images will be used per epoch. When `shuffle_class` is True, the training
+will select each class with equal probability regardless of the number of images of each class. So, 'barrier', 
+'manhole', 'water_barrier' will be selected with the same probability even when 'barrier' is more common.
 If `generator_class_rate` is provided then the classes will be selected following that rate instead of with
 equal probability.
 
